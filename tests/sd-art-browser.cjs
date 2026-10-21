@@ -1,0 +1,11 @@
+const {chromium}=require(process.env.RELICA_PLAYWRIGHT_MODULE||'playwright');const assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({headless:true,channel:'msedge'});try{
+ const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});
+ await page.route('**/public-config.js',r=>r.fulfill({contentType:'text/javascript',body:"window.RELICA_CONFIG={url:'',key:'',google:false};"}));await page.goto('http://127.0.0.1:4173/');await page.locator('#enter').click();await page.locator('nav [data-page="game"]').click();await page.waitForFunction(()=>!document.querySelector('#game-start').disabled);
+ for(const id of ['aren','elia','selene','noir']){
+  await page.locator('[data-character="'+id+'"]').click();await page.locator('#game-start').click();await page.waitForFunction(id=>document.querySelector('#phaser-mount canvas').dataset.memberArt===id,id,{timeout:2500});
+  const image=await page.evaluate(async id=>{const img=new Image();img.src=RelicaPresentation.memberAssets[id];await img.decode();const canvas=document.createElement('canvas');canvas.width=img.width;canvas.height=img.height;const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);const data=ctx.getImageData(0,0,img.width,img.height).data;let solid=0,transparent=0;for(let i=3;i<data.length;i+=4){if(data[i]===0)transparent++;if(data[i]>200)solid++;}return {solid,transparent,size:img.width*img.height};},id);
+  assert(image.transparent>image.size*.2);assert(image.solid>image.size*.05);await page.locator('#defense-arena').screenshot({path:'output/sd-'+id+'-arena.png'});await page.locator('#game-stop').click();
+ }
+ await page.setViewportSize({width:390,height:844});await page.locator('[data-character="elia"]').click();await page.locator('#game-start').click();assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.screenshot({path:'output/sd-elia-mobile.png',fullPage:true});assert.deepEqual(errors,[]);console.log('PASS all four transparent SD textures loaded, selected member rendered, live combat, mobile layout');
+ }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});

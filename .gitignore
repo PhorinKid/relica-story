@@ -1,0 +1,16 @@
+# Installed dependencies and generated verification output
+node_modules/
+output/
+coverage/
+*.log
+
+# Machine-specific credentials and configuration
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Local reference originals and previous user memo snapshots
+/docs/art/references/
+/docs/history/skill-originals/

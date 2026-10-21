@@ -1,0 +1,42 @@
+const {chromium}=require(process.env.RELICA_PLAYWRIGHT_MODULE||'playwright');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+(async()=>{
+ const browser=await chromium.launch({headless:true,channel:'msedge'});const output=__dirname+'/../output';fs.mkdirSync(output,{recursive:true});
+ try{
+  const page=await browser.newPage({viewport:{width:1440,height:1100},hasTouch:true,reducedMotion:'reduce'});const errors=[];
+  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});page.on('response',r=>{if(r.status()>=400)errors.push(r.status()+' '+r.url());});
+  await page.route('**/public-config.js',r=>r.fulfill({contentType:'text/javascript',body:"window.RELICA_CONFIG={url:'',key:'',google:false};"}));await page.goto('http://127.0.0.1:4173/',{waitUntil:'networkidle'});await page.click('#enter');await page.locator('nav [data-page="game"]').click();await page.waitForFunction(()=>!document.querySelector('#game-start').disabled);
+  assert.equal(await page.evaluate(()=>Phaser.VERSION),'3.90.0');assert.equal(await page.locator('#wall-value').textContent(),'30 / 30');assert.equal(await page.locator('#wall-meter').getAttribute('max'),'30');
+  await page.click('#game-start');await page.click('#game-speed');assert.equal(await page.evaluate(()=>RelicaDefense.clock.speed),2);await page.waitForFunction(()=>RelicaDefense.combat.kills>=1,{},{timeout:20000});
+  assert.equal(await page.evaluate(()=>RelicaDefense.combat.phase),'running');
+  await page.screenshot({path:output+'/defense-desktop.png',fullPage:true});
+  await page.waitForFunction(()=>RelicaDefense.combat.phase==='upgrade',{},{timeout:30000});
+  assert.equal(await page.locator('[data-upgrade]').count(),3);
+  await page.screenshot({path:output+'/defense-upgrade.png',fullPage:true});
+  const before=await page.evaluate(()=>RelicaDefense.combat.elapsed);await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>RelicaDefense.combat.elapsed),before);
+  await page.locator('[data-upgrade]').first().click();
+  await page.waitForFunction(()=>RelicaDefense.combat.phase==='waiting',{},{timeout:35000});
+  const stageBefore=await page.evaluate(()=>RelicaDefense.combat.stage);await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>RelicaDefense.combat.stage),stageBefore);
+  await page.screenshot({path:output+'/defense-stage-clear.png',fullPage:true});
+  await page.getByRole('button',{name:'계속하기',exact:true}).click();assert.equal(await page.evaluate(()=>RelicaDefense.combat.stage),2);
+  await page.click('#game-stop');assert.equal(await page.evaluate(()=>RelicaDefense.combat.phase),'ended');assert.equal(await page.evaluate(()=>RelicaDefense.combat.result.cleared),1);
+  assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('relica.story.guest.v2')).stage),1);
+  await page.locator('[data-mode="endless"]').click();await page.click('#game-start');
+  await page.click('#aim-toggle');assert.equal(await page.evaluate(()=>RelicaDefense.combat.aimMode),'manual');
+  const box=await page.locator('#phaser-mount canvas').boundingBox();await page.mouse.move(box.x+box.width*.8,box.y+box.height*.2);await page.waitForTimeout(100);assert((await page.evaluate(()=>RelicaDefense.combat.aim))<0);
+  const scrollTime=await page.evaluate(()=>RelicaDefense.combat.elapsed);await page.locator('.site-footer').scrollIntoViewIfNeeded();await page.waitForTimeout(350);assert((await page.evaluate(()=>RelicaDefense.combat.elapsed))>scrollTime+.4);
+  const cdp=await page.context().newCDPSession(page);const frozenTime=await page.evaluate(()=>RelicaDefense.combat.elapsed);await cdp.send('Page.setWebLifecycleState',{state:'frozen'});await new Promise(resolve=>setTimeout(resolve,700));await cdp.send('Page.setWebLifecycleState',{state:'active'});await page.waitForFunction(t=>RelicaDefense.combat.elapsed>t+1,frozenTime,{timeout:3000});await cdp.detach();
+  await page.click('#game-pause');const paused=await page.evaluate(()=>RelicaDefense.combat.elapsed);await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>RelicaDefense.combat.elapsed),paused);await page.click('#game-pause');
+  await page.click('#login');await page.waitForFunction(()=>RelicaDefense.combat.suspended);const modalTime=await page.evaluate(()=>RelicaDefense.combat.elapsed);await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>RelicaDefense.combat.elapsed),modalTime);await page.keyboard.press('Escape');
+  await page.locator('nav [data-page="relica"]').click();const hiddenTime=await page.evaluate(()=>RelicaDefense.combat.elapsed);await page.waitForTimeout(300);assert.equal(await page.evaluate(()=>RelicaDefense.combat.elapsed),hiddenTime);await page.locator('nav [data-page="game"]').click();
+  await page.click('#game-stop');assert.equal(await page.evaluate(()=>RelicaDefense.combat.result.reason),'stopped');assert.equal(await page.evaluate(()=>RelicaDefense.combat.level),1);
+  await page.screenshot({path:output+'/defense-result.png',fullPage:true});
+  await page.reload({waitUntil:'networkidle'});await page.click('#enter');await page.locator('nav [data-page="game"]').click();assert((await page.locator('#game-record').textContent()).includes('스테이지 1'));
+  await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>!document.querySelector('#game-start').disabled);await page.click('#game-start');await page.click('#aim-toggle');await page.locator('#phaser-mount canvas').scrollIntoViewIfNeeded();const mobile=await page.locator('#phaser-mount canvas').boundingBox();await page.touchscreen.tap(mobile.x+mobile.width*.8,mobile.y+mobile.height*.2);
+  await page.waitForFunction(()=>RelicaDefense.combat.aim<0);
+  await page.waitForTimeout(200);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.screenshot({path:output+'/defense-mobile.png',fullPage:true});await page.click('#game-stop');assert.equal(await page.evaluate(()=>RelicaDefense.combat.phase),'ended');
+  assert.deepEqual(errors,[]);console.log('PASS: Phaser 3.90.0, real automatic combat, XP and three upgrades, stage clear waiting/continue, endless stop, manual aim, pause/menu/modal suspension, reset and persistent local record, mobile layout, 2x speed, scrolling progression and delayed-callback catch-up.');
+ }finally{await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

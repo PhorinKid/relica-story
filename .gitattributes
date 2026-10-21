@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.zip binary
+
+# Keep upstream vendor bundles byte-for-byte; upstream whitespace is intentional.
+assets/vendor/** -whitespace

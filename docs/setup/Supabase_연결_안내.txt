@@ -1,0 +1,99 @@
+﻿RELICA STORY · Supabase 연결 안내
+
+현재 상태
+- 이메일 회원가입/로그인/로그아웃, 인증메일 안내, 비밀번호 재설정,
+  테스트 결과와 최고 기록의 서버 동기화 코드가 준비되어 있습니다.
+- 사용자께서 제공한 URL/공개 키를 public-config.js에 적용했습니다.
+- 실제 인증 설정 API에서 Email 활성화, Confirm email 활성화를 확인했습니다.
+- 2026-10-21 확인: 기록 테이블과 병합 함수가 생성됐습니다.
+  비로그인 요청은 42501 권한 오류로 차단되어 정상입니다.
+  아래 2번은 실행을 완료한 단계이므로 다시 실행할 필요는 없습니다.
+- 사용자 확인: 실제 회원가입과 이메일 인증이 정상 작동합니다.
+- 다른 브라우저에서 계정 기록을 복원하는 실사용 검증은 남아 있습니다.
+- 게스트 기능과 기존 게임은 그대로 이용하실 수 있습니다.
+- 게임 스킬·몬스터·체력 등의 수치는 이번 단계에서 바꾸지 않았습니다.
+
+1. Supabase에서 새 프로젝트 만들기
+https://supabase.com/dashboard
+현재 연결 프로젝트: https://cdatkhzthvgtyzuphyxu.supabase.co
+이미 프로젝트가 있으므로 새로 만들 필요는 없습니다.
+새로 만들 경우 이름은 relica-story 등을 사용하시면 됩니다.
+데이터베이스 비밀번호는 본인이 보관하고 이 채팅이나 코드에 넣지 마세요.
+
+2. 프로젝트 DB 만들기
+프로젝트의 SQL Editor에서 프로젝트 루트의 supabase/schema.sql 전체를 붙여넣고 실행하세요.
+개인 기록 테이블, 본인 데이터만 접근하는 RLS, 기록 병합 함수가 생성됩니다.
+초기 프로젝트에 사용할 SQL이며 기존 사용자 데이터를 삭제하지 않습니다.
+
+3. 공개 연결 정보 확인하기
+Project URL(적용됨): https://cdatkhzthvgtyzuphyxu.supabase.co
+Publishable key: sb_publishable_... (또는 Legacy anon public 키)
+대시보드의 Connect / Project Settings / API Keys에서 확인하실 수 있습니다.
+메뉴 이름은 대시보드 버전에 따라 달라질 수 있습니다.
+Secret key(sb_secret_...), service_role, DB 비밀번호는 보내지 마세요.
+
+public-config.js 예시
+window.RELICA_CONFIG={
+  url:'https://프로젝트ID.supabase.co',
+  key:'sb_publishable_공개키',
+  google:false
+};
+공개 키 자체는 웹 브라우저에 전달됩니다. 접근 통제는 위 SQL의 RLS로 합니다.
+URL과 공개 키를 알려주시면 제가 이 파일에 적용할 수 있습니다.
+
+4. 이메일 로그인 설정
+Authentication에서 Email 가입/로그인을 활성화하고 Confirm email을 켜세요.
+앱의 비밀번호 입력 범위는 8~128자입니다. Supabase도 최소 8자 이상으로 설정하세요.
+가입 후에는 이메일의 확인 링크를 같은 브라우저에서 연 뒤 로그인합니다.
+이 구현은 PKCE를 사용하므로 요청한 브라우저의 저장 공간이 필요합니다.
+
+5. 복귀 URL 설정
+Authentication의 URL Configuration에서 아래 주소를 허용하세요.
+Site URL(로컬 테스트): http://127.0.0.1:4173/
+Redirect URLs:
+http://127.0.0.1:4173/
+http://127.0.0.1:4173/?relica_auth=recovery
+배포 후에는 같은 형식의 실제 HTTPS 주소도 추가하고 Site URL을 배포 주소로 바꾸세요.
+localhost와 127.0.0.1은 서로 다른 브라우저 저장 공간입니다. 한 주소로 테스트하세요.
+
+6. 이메일 발송
+Supabase 기본 발송기는 프로젝트 팀에 속한 주소에만 보내는 등 제한이 있습니다.
+다른 학생도 가입할 공개 서비스에는 Custom SMTP 설정이 필요합니다.
+SMTP 비밀번호는 Supabase 대시보드에만 입력하고 웹 코드나 채팅에 넣지 마세요.
+Authentication의 Rate Limits도 유지하고, 실제 프로젝트에서 과다 요청 차단을 확인하세요.
+이 프로젝트에는 자체 인증 서버를 만들지 않았으며 Supabase Auth의 제한을 사용합니다.
+
+7. 연결 후 확인할 일
+- 회원가입 → 확인 메일 → 로그인 → 내 계정 표시
+- 게스트 테스트 결과/최고 기록이 로그인 계정으로 이관되는지
+- 로그아웃 후 다른 계정에서 이전 계정의 기록이 보이지 않는지
+- 다른 기기에서 같은 계정으로 로그인해 기록이 복원되는지
+- 비밀번호를 잊으셨나요 → 메일 링크 → 새 비밀번호 저장
+- 인터넷 끊김 → 저장 실패 안내 → 연결 후 다시 동기화
+- Supabase에서 다른 계정 데이터 조회/수정이 RLS로 막히는지
+
+기록 정책
+- 게스트는 브라우저 localStorage에 저장됩니다. 일반 종료 뒤에도 남습니다.
+- 로그인 계정은 계정별 캐시와 Supabase에 저장됩니다.
+- 최고 기록은 더 큰 값, 테스트는 완료 시각이 더 최신인 결과를 사용합니다.
+- 로그인 시 게스트 데이터를 계정으로 옮기므로, 로그아웃 후 게스트 화면에는
+  계정의 테스트 결과와 기록을 표시하지 않습니다.
+- 서버 저장 실패 시 계정 캐시를 남깁니다. 내 계정에서 다시 동기화할 수 있습니다.
+- 진행 중인 전투 자체는 저장하지 않습니다.
+- 공용 PC에서는 로그아웃하세요. 비밀번호는 저장하지 않고 로그인 토큰은 SDK가 관리합니다.
+
+Google 로그인(선택)
+이메일 인증과 별개입니다. Google Cloud 및 Supabase Google Provider 설정을 마친 뒤
+public-config.js의 google을 true로 바꾸면 버튼이 나타납니다. 현재는 꺼 두었습니다.
+
+검증 범위
+로컬 자동 테스트: 기록 병합·계정 분리·통신 실패 보존·실제 PostgreSQL의 RLS.
+브라우저 검사: 실제 Supabase SDK에 테스트 HTTP 응답을 연결한 흐름 검사.
+실제 메일·운영 Supabase 프로젝트의 연결 검증은 프로젝트 설정 뒤에 진행합니다.
+
+공식 참고
+https://supabase.com/docs/guides/getting-started/api-keys
+https://supabase.com/docs/guides/database/postgres/row-level-security
+https://supabase.com/docs/guides/auth/auth-smtp
+https://supabase.com/docs/guides/auth/rate-limits
+https://supabase.com/docs/guides/auth/redirect-urls

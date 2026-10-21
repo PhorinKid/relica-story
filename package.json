@@ -1,0 +1,17 @@
+{
+  "name": "relica-story",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RELICA 세계관·멤버 소개, 클래스 테스트와 디펜스 게임",
+  "scripts": {
+    "dev": "node server.cjs",
+    "test": "node --test tests/model.test.cjs tests/combat.test.cjs tests/skills.test.cjs tests/quiz.test.cjs tests/account.test.cjs tests/database.test.cjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.95.3",
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.10"
+  }
+}

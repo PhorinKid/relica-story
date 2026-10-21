@@ -1,0 +1,16 @@
+const {chromium}=require(process.env.RELICA_PLAYWRIGHT_MODULE||'playwright');const assert=require('node:assert/strict');
+(async()=>{const browser=await chromium.launch({headless:true,channel:'msedge'});try{
+ const page=await browser.newPage({viewport:{width:1440,height:1100},reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ await page.route('**/public-config.js',r=>r.fulfill({contentType:'text/javascript',body:"window.RELICA_CONFIG={url:'',key:'',google:false};"}));
+ await page.goto('http://127.0.0.1:4173/');await page.locator('#enter').click();await page.locator('nav [data-page="game"]').click();await page.waitForFunction(()=>!document.querySelector('#game-start').disabled);
+ assert.equal(await page.locator('#game-sound').getAttribute('aria-pressed',{timeout:1500}),'false');assert.equal(await page.evaluate(()=>RelicaDefense.sound.state().context),'uninitialized');
+ await page.locator('#game-sound').click();await page.waitForFunction(()=>RelicaDefense.sound.state().context==='running');assert.equal(await page.locator('#game-sound').getAttribute('aria-pressed'),'true');
+ for(const id of ['aren','elia','selene','noir']){await page.locator('[data-character="'+id+'"]').click();await page.locator('#game-start').click();await page.waitForFunction(()=>RelicaDefense.combat.projectiles.length>0);await page.waitForFunction(()=>RelicaDefense.sound.state().voices>0);await page.screenshot({path:'output/pixel-'+id+'-desktop.png',fullPage:true});await page.locator('#game-stop').click();}
+ await page.locator('#game-start').click();await page.waitForFunction(()=>RelicaDefense.sound.state().active);await page.locator('#game-pause').click();await page.waitForFunction(()=>!RelicaDefense.sound.state().active);
+ await page.locator('#game-pause').click();await page.waitForFunction(()=>RelicaDefense.sound.state().active);await page.locator('#login').click();await page.waitForFunction(()=>!RelicaDefense.sound.state().active);await page.keyboard.press('Escape');
+ await page.locator('nav [data-page="test"]').click();await page.waitForFunction(()=>!RelicaDefense.sound.state().active);
+ await page.reload();await page.locator('#enter').click();await page.locator('nav [data-page="game"]').click();assert.equal(await page.locator('#game-sound').getAttribute('aria-pressed'),'true');assert.equal(await page.evaluate(()=>RelicaDefense.sound.state().context),'uninitialized');
+ await page.locator('#game-sound').click();assert.equal(await page.locator('#game-sound').getAttribute('aria-pressed'),'false');
+ await page.setViewportSize({width:390,height:844});await page.waitForFunction(()=>!document.querySelector('#game-start').disabled);await page.locator('[data-character="selene"]').click();await page.locator('#game-start').click();await page.screenshot({path:'output/pixel-selene-mobile.png',fullPage:true});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
+ console.log('PASS distinct member previews, live combat, opt-in audio, mute persistence, no autoplay, pause/menu/modal audio gate, mobile layout');
+ }finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1;});
