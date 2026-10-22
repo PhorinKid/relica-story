@@ -1,6 +1,15 @@
-const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const vm=require('node:vm');const {createHash}=require('node:crypto');
-const root=path.resolve(__dirname,'..');const html=()=>fs.readFileSync(path.join(root,'index.html'),'utf8');
-function bootstrap(){const s=html().match(/<script>([\s\S]*?gtag\('config', 'G-HXV2H1HVVW'\);[\s\S]*?)<\/script>/);assert(s,'The supplied Google tag configuration is required');return s[1];}
-test('The new Google tag is installed once in the head without the old GTM/GA identifiers',()=>{const s=html();assert.equal((s.match(/src="https:\/\/www.googletagmanager.com\/gtag\/js\?id=G-HXV2H1HVVW"/g)||[]).length,1);assert.match(s,/<head>[\s\S]*<script async src="https:\/\/www.googletagmanager.com\/gtag\/js\?id=G-HXV2H1HVVW"><\/script>[\s\S]*<\/head>/);assert.doesNotMatch(s,/GTM-N8T9PQBT|G-G492PD3HBS|gtm\.js\?id=/);});
-test('Google tag queues initialization and configuration once and preserves existing data',()=>{const layer=[{event:'existing'}],ctx={dataLayer:layer,Date};ctx.window=ctx;vm.runInNewContext(bootstrap(),ctx);assert.equal(ctx.dataLayer,layer);assert.equal(layer.length,3);assert.equal(layer[1][0],'js');assert.equal(typeof layer[1][1].getTime,'function');assert.equal(layer[2][0],'config');assert.equal(layer[2][1],'G-HXV2H1HVVW');});
-test('CSP authorizes the exact bootstrap hash and analytics endpoints without unsafe script execution',()=>{const s=fs.readFileSync(path.join(root,'server.cjs'),'utf8');const hash=createHash('sha256').update(bootstrap()).digest('base64');assert(s.includes("'sha256-"+hash+"'"),'CSP must match the inline Google tag exactly');assert.match(s,/script-src 'self'[^;]*https:\/\/www\.googletagmanager\.com/);assert.match(s,/connect-src[^;]*google-analytics\.com/);assert.doesNotMatch(s,/script-src[^;]*unsafe-(inline|eval)/);});
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const crypto=require('node:crypto');
+test('GTM is installed once, without a duplicate direct GA loader, and allowed by CSP',()=>{
+ const html=fs.readFileSync('index.html','utf8');
+ const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+ assert.equal(scripts.length,1);
+ assert.match(scripts[0][1],/GTM-WLG9XTKF/);
+ assert.doesNotMatch(html,/gtag\/js|gtag\(|G-HXV2H1HVVW|GTM-N8T9PQBT/);
+ assert.match(html,/<body>\s*<!-- Google Tag Manager \(noscript\) -->\s*<noscript><iframe/);
+ const hash=crypto.createHash('sha256').update(scripts[0][1]).digest('base64');
+ assert.ok(fs.readFileSync('server.cjs','utf8').includes("'sha256-"+hash+"'"));
+ assert.match(fs.readFileSync('docs/setup/analytics.md','utf8'),/G-BY8CYHDV4H/);
+});

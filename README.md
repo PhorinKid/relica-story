@@ -91,6 +91,6 @@ node tests/quiz-browser.cjs
 
 GitHub 저장소: [PhorinKid/relica-story](https://github.com/PhorinKid/relica-story)
 
-## Google Analytics
+## Analytics / Tag Manager
 
-Google tag 측정 ID는 `G-HXV2H1HVVW`이며 `index.html`의 head에 직접 설치했습니다. 초기 페이지 조회를 수집하는 기본 설정입니다. 메뉴 전환의 가상 페이지 조회와 테스트·게임별 별도 이벤트는 추가하지 않았습니다. 로컬 서버 CSP는 설치된 인라인 코드의 SHA-256 해시와 Google Analytics 도메인을 허용합니다.
+GTM `GTM-WLG9XTKF`를 공통 HTML에 설치합니다. GA4 `G-BY8CYHDV4H`는 GTM의 Google 태그에서 연결합니다. 직접 GA 코드는 중복 설치하지 않습니다. 관리자 게시 및 검증 절차는 [설정 안내](docs/setup/analytics.md)를 확인하세요.
