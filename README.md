@@ -90,3 +90,7 @@ node tests/quiz-browser.cjs
 이 폴더만 독립 저장소로 사용합니다. `assets/`와 라이선스·설정·테스트·현재 메모를 포함합니다. `node_modules/`, `output/`, `.env` 계열, 참고 이미지 원본과 과거 사용자 메모 사본은 `.gitignore`로 제외합니다. 참고 이미지와 메모 사본은 로컬 폴더에 보관됩니다.
 
 GitHub 저장소: [PhorinKid/relica-story](https://github.com/PhorinKid/relica-story)
+
+## Google Analytics
+
+Google tag 측정 ID는 `G-HXV2H1HVVW`이며 `index.html`의 head에 직접 설치했습니다. 초기 페이지 조회를 수집하는 기본 설정입니다. 메뉴 전환의 가상 페이지 조회와 테스트·게임별 별도 이벤트는 추가하지 않았습니다. 로컬 서버 CSP는 설치된 인라인 코드의 SHA-256 해시와 Google Analytics 도메인을 허용합니다.
