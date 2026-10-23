@@ -93,4 +93,4 @@ GitHub 저장소: [PhorinKid/relica-story](https://github.com/PhorinKid/relica-s
 
 ## Analytics / Tag Manager
 
-GTM `GTM-WLG9XTKF`를 공통 HTML에 설치합니다. GA4 `G-BY8CYHDV4H`는 GTM의 Google 태그에서 연결합니다. 직접 GA 코드는 중복 설치하지 않습니다. 관리자 게시 및 검증 절차는 [설정 안내](docs/setup/analytics.md)를 확인하세요.
+GTM `GTM-5PN3C32P`를 공통 HTML에 설치합니다. GA4 `G-826N17NSKE`는 GTM의 Google 태그에서 연결합니다. 직접 GA 코드는 중복 설치하지 않습니다. 관리자 게시 및 검증 절차는 [설정 안내](docs/setup/analytics.md)를 확인하세요.
